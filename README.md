@@ -63,3 +63,4 @@ penny-signal/
 | **GitHub Actions** | - Easy to set up <br>- Free for public repos <br>- Cron job support with workflows | - Not suitable for long-running tasks |
 | **Railway**      | - Simple full-stack deployment <br>- Environment variable management | - Slightly more opinionated workflow |
 
+![image](https://github.com/user-attachments/assets/95fe8883-ce9f-4893-9f5f-ad52f4f9f8a1)
