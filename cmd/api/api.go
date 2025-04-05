@@ -1,34 +1,34 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
+	_ "github.com/khorzhenwin/go-chujang/docs" // <-- this is required for Swagger to embed docs
+	healthapi "github.com/khorzhenwin/go-chujang/internal/health"
+	watchlistapi "github.com/khorzhenwin/go-chujang/internal/watchlist"
+	_ "github.com/swaggo/files"
+	"github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
-	"time"
-
-	health_api "github.com/khorzhenwin/go-chujang/cmd/api/health-api"
 )
 
-type application struct {
-	config config
-}
-
-type config struct {
-	BASE_PATH    string
-	ADDRESS      string
-	writeTimeout time.Duration
-	readTimeout  time.Duration
-}
-
 func (app *application) run() error {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
+
 	server := &http.Server{
 		Addr:         app.config.ADDRESS,
-		Handler:      mux,
+		Handler:      r,
 		WriteTimeout: app.config.writeTimeout,
 		ReadTimeout:  app.config.readTimeout,
 	}
 
-	mux.HandleFunc("GET "+app.config.BASE_PATH+"/health", health_api.HealthHandler)
+	// Register all API routes
+	r.Route(app.config.BASE_PATH, func(r chi.Router) {
+		healthapi.RegisterRoutes(r)
+		watchlistapi.RegisterRoutes(r)
+	})
+
+	// Serve Swagger (if generated)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	log.Println("Starting server on", app.config.ADDRESS)
 	return server.ListenAndServe()

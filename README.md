@@ -17,41 +17,6 @@ A personal Go project designed to help identify buy signals for penny stocks in 
 - 🕒 Scheduled Execution: Periodically run the analysis using a scheduler or cron job.
 - 📊 (Optional) Historical signal storage for tracking performance.
 
-### Suggested Folder Structure
-```
-penny-signal/
-│
-├── cmd/
-│   └── main.go            # App entrypoint
-│
-├── config/
-│   └── config.go          # Load env vars or API keys
-│
-├── internal/
-│   ├── fetcher/           # API clients (Finnhub, etc.)
-│   │   └── fetcher.go
-│   │
-│   ├── engine/            # Buy signal logic
-│   │   └── engine.go
-│   │
-│   ├── notifier/          # Notification handlers
-│   │   └── notifier.go
-│   │
-│   └── watchlist/         # Read watchlist input
-│       └── reader.go
-│
-├── pkg/                   # Shared utilities (e.g., indicator calculations)
-│   └── indicators.go
-│
-├── scripts/
-│   └── schedule.sh        # Sample cron script
-│
-├── Dockerfile             # Optional for containerizing
-├── .env                   # API keys, configs
-├── README.md              # You’re here
-└── go.mod / go.sum
-```
-
 ### ☁️ Cloud Deployment Options
 
 | Platform         | Pros                                                | Cons                                |
