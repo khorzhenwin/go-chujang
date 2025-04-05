@@ -1,6 +1,6 @@
 package watchlist
 
-import "sync"
+import "gorm.io/gorm"
 
 type Storage interface {
 	Create(ticker Ticker) error
@@ -10,11 +10,15 @@ type Storage interface {
 	Delete(id string) error
 }
 
-type InMemoryStore struct {
-	mu      sync.RWMutex
-	tickers map[string]Ticker
+type Repository struct {
+	db *gorm.DB
 }
 
-func NewInMemoryStore() *InMemoryStore {
-	return &InMemoryStore{tickers: make(map[string]Ticker)}
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
+}
+
+// AutoMigrate sets up the schema
+func (r *Repository) AutoMigrate() error {
+	return r.db.AutoMigrate(&Ticker{})
 }

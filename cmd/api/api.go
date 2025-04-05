@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/khorzhenwin/go-chujang/docs" // <-- this is required for Swagger to embed docs
-	healthapi "github.com/khorzhenwin/go-chujang/internal/health"
-	watchlistapi "github.com/khorzhenwin/go-chujang/internal/watchlist"
+	dbconfig "github.com/khorzhenwin/go-chujang/internal/config"
+	"github.com/khorzhenwin/go-chujang/internal/db"
+	"github.com/khorzhenwin/go-chujang/internal/health"
+	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	_ "github.com/swaggo/files"
 	"github.com/swaggo/http-swagger"
 	"log"
@@ -12,8 +14,25 @@ import (
 )
 
 func (app *application) run() error {
-	r := chi.NewRouter()
+	// DB config
+	cfg, err := dbconfig.LoadDBConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	// use the new centralized db package
+	conn, err := db.New(cfg.DSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	repo := watchlist.NewRepository(conn)
+	if err := repo.AutoMigrate(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Router config
+	r := chi.NewRouter()
 	server := &http.Server{
 		Addr:         app.config.ADDRESS,
 		Handler:      r,
@@ -23,8 +42,8 @@ func (app *application) run() error {
 
 	// Register all API routes
 	r.Route(app.config.BASE_PATH, func(r chi.Router) {
-		healthapi.RegisterRoutes(r)
-		watchlistapi.RegisterRoutes(r)
+		health.RegisterRoutes(r)
+		watchlist.RegisterRoutes(r)
 	})
 
 	// Serve Swagger (if generated)

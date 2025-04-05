@@ -20,3 +20,6 @@ coverage.out
 
 # IDEs and editors
 .idea/
+
+# Environment files
+.env
