@@ -17,8 +17,3 @@ type Repository struct {
 func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
-
-// AutoMigrate sets up the schema
-func (r *Repository) AutoMigrate() error {
-	return r.db.AutoMigrate(&Ticker{})
-}

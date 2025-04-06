@@ -1,0 +1,50 @@
+name: Production
+
+on:
+  workflow_dispatch: # Allow manual triggering of the workflow
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Go App
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_SSL: ${{ secrets.DB_SSL }}
+      DB_DSN: ${{ secrets.DB_DSN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build the Go app
+        run: go build -o gochujang ./cmd/api
+
+      - name: Run database migrations
+        run: |
+          go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          migrate -path migrate/migrations -database "postgres://${{ env.DB_DSN }}" up
+
+      - name: Deploy (stub step)
+        run: echo "Deploying application..."
+
+        # Replace with your deployment step: rsync, scp, kubectl, ECS CLI, etc.
+        # Example: AWS ECS CLI, kubectl apply, or Render deploy command

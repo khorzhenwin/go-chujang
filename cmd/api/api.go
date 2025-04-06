@@ -26,10 +26,7 @@ func (app *application) run() error {
 		log.Fatal(err)
 	}
 
-	repo := watchlist.NewRepository(conn)
-	if err := repo.AutoMigrate(); err != nil {
-		log.Fatal(err)
-	}
+	watchlist.NewRepository(conn)
 
 	// Router config
 	r := chi.NewRouter()
