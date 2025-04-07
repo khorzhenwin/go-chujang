@@ -2,16 +2,26 @@ package watchlist
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
+	"errors"
+	"gorm.io/gorm"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func RegisterRoutes(r chi.Router) {
+type Handler struct {
+	Repo Storage
+}
+
+func RegisterRoutes(r chi.Router, repo Storage) {
+	h := &Handler{Repo: repo}
+
 	r.Route("/watchlist", func(r chi.Router) {
-		r.Get("/", GetAllHandler)
-		r.Post("/", CreateHandler)
-		r.Put("/{id}", UpdateHandler)
-		r.Delete("/{id}", DeleteHandler)
+		r.Get("/", h.GetAllHandler)
+		r.Post("/", h.CreateHandler)
+		r.Put("/{id}", h.UpdateHandler)
+		r.Delete("/{id}", h.DeleteHandler)
 	})
 }
 
@@ -22,10 +32,16 @@ func RegisterRoutes(r chi.Router) {
 // @Produce      json
 // @Success      200  {array}  Ticker
 // @Router       /api/v1/watchlist [get]
-func GetAllHandler(w http.ResponseWriter, r *http.Request) {
-	// return dummy response for now
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]string{"AAPL", "GOOG", "TSLA"})
+func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
+	tickers, err := h.Repo.GetAll()
+	if err != nil {
+		http.Error(w, "Failed to retrieve tickers", http.StatusInternalServerError)
+		return
+	}
+	err = json.NewEncoder(w).Encode(tickers)
+	if err != nil {
+		return
+	}
 }
 
 // CreateHandler handles POST /watchlist
@@ -37,15 +53,26 @@ func GetAllHandler(w http.ResponseWriter, r *http.Request) {
 // @Param        ticker  body      Ticker  true  "Ticker to add"
 // @Success      201     {string}  string            "created"
 // @Router       /api/v1/watchlist [post]
-func CreateHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var t Ticker
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	// store t in DB or memory (future)
+
+	if err := h.Repo.Create(&t); err != nil {
+		http.Error(w, "Failed to create ticker", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "created"})
+
+	err := json.NewEncoder(w).Encode(map[string]string{"message": "created"})
+	if err != nil {
+		return
+	}
 }
 
 // UpdateHandler handles PUT /watchlist/{id}
@@ -59,15 +86,29 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 // @Success      200     {string}  string   "updated"
 // @Failure      400     {string}  string   "bad request"
 // @Router       /api/v1/watchlist/{id} [put]
-func UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		http.Error(w, "ID is required", http.StatusBadRequest)
+func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	// update logic here
-	w.WriteHeader(http.StatusOK)
+	var t Ticker
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.Repo.Update(uint(id), t); err != nil {
+		http.Error(w, "Failed to update ticker", http.StatusInternalServerError)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	if err != nil {
+		return
+	}
 }
 
 // DeleteHandler handles DELETE /watchlist/{id}
@@ -79,13 +120,22 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 // @Success      204  {string}  string  "no content"
 // @Failure      400  {string}  string  "bad request"
 // @Router       /api/v1/watchlist/{id} [delete]
-func DeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		http.Error(w, "ID is required", http.StatusBadRequest)
+func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	// delete logic here
+	if err := h.Repo.Delete(uint(id)); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, "Record not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to delete ticker", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }

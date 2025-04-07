@@ -6,27 +6,30 @@ services:
     container_name: gochujang-db
     profiles:
       - dev
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - DB_DSN=${DB_DSN}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile.migrate
-    depends_on:
-      - db
-    environment:
-      - DB_DSN=${DB_DSN}
-    command: ["./migrate"]
-    profiles:
-      - dev
-      - prod
+#  migrate:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.migrate
+#    depends_on:
+#      - db
+#    environment:
+#      - DB_DSN=${DB_DSN}
+#    command: ["./migrate"]
+#    profiles:
+#      - dev
+#      - prod
 
   app:
     build:

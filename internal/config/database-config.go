@@ -14,6 +14,7 @@ type DBConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
+	DSN      string
 }
 
 func LoadDBConfig() (*DBConfig, error) {
@@ -26,6 +27,7 @@ func LoadDBConfig() (*DBConfig, error) {
 		Password: os.Getenv("DB_PASSWORD"),
 		Name:     os.Getenv("DB_NAME"),
 		SSLMode:  os.Getenv("DB_SSL"),
+		DSN:      os.Getenv("DB_DSN"),
 	}
 
 	// Validate required fields
@@ -36,7 +38,7 @@ func LoadDBConfig() (*DBConfig, error) {
 	return cfg, nil
 }
 
-func (c *DBConfig) DSN() string {
+func (c *DBConfig) GetFormattedDSN() string {
 	return fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		c.Host, c.User, c.Password, c.Name, c.Port, c.SSLMode,

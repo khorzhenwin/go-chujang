@@ -7,6 +7,7 @@ import (
 	"github.com/khorzhenwin/go-chujang/internal/db"
 	"github.com/khorzhenwin/go-chujang/internal/health"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
+	migration "github.com/khorzhenwin/go-chujang/scripts"
 	_ "github.com/swaggo/files"
 	"github.com/swaggo/http-swagger"
 	"log"
@@ -14,21 +15,24 @@ import (
 )
 
 func (app *application) run() error {
-	// DB config
+	// 1. Load DB Config
 	cfg, err := dbconfig.LoadDBConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// use the new centralized db package
-	conn, err := db.New(cfg.DSN())
+	// 2. Initialize DB
+	conn, err := db.New(cfg.GetFormattedDSN())
 	if err != nil {
 		log.Fatal(err)
 	}
+	repo := watchlist.NewRepository(conn)
 
-	watchlist.NewRepository(conn)
+	// 3. Run Migrations
+	println(cfg.DSN)
+	migration.RunMigration(cfg.DSN)
 
-	// Router config
+	// 4. Setup Router config
 	r := chi.NewRouter()
 	server := &http.Server{
 		Addr:         app.config.ADDRESS,
@@ -37,13 +41,13 @@ func (app *application) run() error {
 		ReadTimeout:  app.config.readTimeout,
 	}
 
-	// Register all API routes
+	// 5. Register all API routes
 	r.Route(app.config.BASE_PATH, func(r chi.Router) {
 		health.RegisterRoutes(r)
-		watchlist.RegisterRoutes(r)
+		watchlist.RegisterRoutes(r, repo)
 	})
 
-	// Serve Swagger (if generated)
+	// 6. Serve Swagger (if generated)
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	log.Println("Starting server on", app.config.ADDRESS)

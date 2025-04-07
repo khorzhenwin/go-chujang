@@ -4,8 +4,7 @@ run:
 
 # Run migrations locally using golang-migrate CLI
 migrate:
-	migrate -path migrate/migrations -database \
-		"postgres://$(DB_DSN)" up
+	migrate -path cmd/migrate/migrations -database ${DB_DSN} up
 
 # Build the app Docker image
 build:
