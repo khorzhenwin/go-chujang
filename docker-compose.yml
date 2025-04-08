@@ -18,20 +18,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-#  migrate:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile.migrate
-#    depends_on:
-#      - db
-#    environment:
-#      - DB_DSN=${DB_DSN}
-#    command: ["./migrate"]
-#    profiles:
-#      - dev
-#      - prod
-
   app:
+    working_dir: /app
     build:
       context: .
       dockerfile: Dockerfile

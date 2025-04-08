@@ -7,7 +7,6 @@ import (
 	"github.com/khorzhenwin/go-chujang/internal/db"
 	"github.com/khorzhenwin/go-chujang/internal/health"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
-	migration "github.com/khorzhenwin/go-chujang/scripts"
 	_ "github.com/swaggo/files"
 	"github.com/swaggo/http-swagger"
 	"log"
@@ -22,15 +21,16 @@ func (app *application) run() error {
 	}
 
 	// 2. Initialize DB
-	conn, err := db.New(cfg.GetFormattedDSN())
+	conn, err := db.New(cfg.DsnUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 	repo := watchlist.NewRepository(conn)
 
 	// 3. Run Migrations
-	println(cfg.DSN)
-	migration.RunMigration(cfg.DSN)
+	if err := conn.AutoMigrate(&watchlist.Ticker{}); err != nil {
+		log.Fatalf("❌ AutoMigrate failed: %v", err)
+	}
 
 	// 4. Setup Router config
 	r := chi.NewRouter()

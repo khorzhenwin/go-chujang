@@ -8,7 +8,7 @@ migrate:
 
 # Build the app Docker image
 build:
-	docker build -t gochujang -f Dockerfile .
+	docker build --no-cache -t gochujang -f Dockerfile .
 
 # Build the migration image
 build-migrate:

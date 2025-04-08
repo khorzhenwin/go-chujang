@@ -14,7 +14,7 @@ type DBConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
-	DSN      string
+	DsnUrl   string
 }
 
 func LoadDBConfig() (*DBConfig, error) {
@@ -27,8 +27,9 @@ func LoadDBConfig() (*DBConfig, error) {
 		Password: os.Getenv("DB_PASSWORD"),
 		Name:     os.Getenv("DB_NAME"),
 		SSLMode:  os.Getenv("DB_SSL"),
-		DSN:      os.Getenv("DB_DSN"),
 	}
+
+	cfg.DsnUrl = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSLMode)
 
 	// Validate required fields
 	if cfg.Host == "" || cfg.User == "" || cfg.Password == "" || cfg.Name == "" {
