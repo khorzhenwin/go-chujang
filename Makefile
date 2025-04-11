@@ -1,27 +1,28 @@
-# Run the app directly (non-containerized)
+# Run the Go app locally using RDS
 run:
-	go run cmd/api/main.go cmd/api/api.go
-
-# Run migrations locally using golang-migrate CLI
-migrate:
-	migrate -path cmd/migrate/migrations -database ${DB_DSN} up
+	go run cmd/api/main.go
 
 # Build the app Docker image
 build:
-	docker build --no-cache -t gochujang -f Dockerfile .
+	docker build -t gochujang -f Dockerfile .
 
-# Build the migration image
-build-migrate:
-	docker build -t gochujang-migrate -f Dockerfile.migrate .
+# Run the app in Docker (connects to cloud DB via env vars)
+up:
+	docker-compose up --build
 
-# Run local dev environment with PostgreSQL and port 8080 exposed
-dev:
-	docker-compose --profile dev up --build
-
-# Run production-like environment (no dev db)
-prod:
-	docker-compose --profile prod up --build
-
-# Tear down containers and volumes
+# Stop the app container
 down:
+	docker-compose down --remove-orphans
+
+# Reset and rebuild (use only if needed)
+reset:
 	docker-compose down -v
+	docker-compose up --build
+
+# Run migrations (assumes they are inside main.go or AutoMigrate)
+migrate:
+	go run cmd/api/main.go
+
+# Print effective DB_DSN (for debugging)
+print-dsn:
+	@echo "📦 DB_DSN is: $(DB_DSN)"

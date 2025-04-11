@@ -21,16 +21,17 @@ func (app *application) run() error {
 	}
 
 	// 2. Initialize DB
-	conn, err := db.New(cfg.DsnUrl)
+	conn, err := db.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	repo := watchlist.NewRepository(conn)
 
-	// 3. Run Migrations
+	// 3. Run Migrations & initialize Repository
 	if err := conn.AutoMigrate(&watchlist.Ticker{}); err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
 	}
+
+	watchlistRepo := watchlist.NewRepository(conn)
 
 	// 4. Setup Router config
 	r := chi.NewRouter()
@@ -44,7 +45,7 @@ func (app *application) run() error {
 	// 5. Register all API routes
 	r.Route(app.config.BASE_PATH, func(r chi.Router) {
 		health.RegisterRoutes(r)
-		watchlist.RegisterRoutes(r, repo)
+		watchlist.RegisterRoutes(r, watchlistRepo)
 	})
 
 	// 6. Serve Swagger (if generated)

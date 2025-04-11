@@ -10,5 +10,6 @@ FROM debian:bullseye-slim
 WORKDIR /app
 COPY --from=builder /app/gochujang ./gochujang
 COPY migrations ./migrations
+COPY global-bundle.pem /app/certs/global-bundle.pem
 
 CMD ["./gochujang"]

@@ -38,6 +38,7 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to retrieve tickers", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(tickers)
 	if err != nil {
 		return
@@ -67,6 +68,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	err := json.NewEncoder(w).Encode(map[string]string{"message": "created"})
@@ -105,6 +107,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 	if err != nil {
 		return
@@ -137,5 +140,6 @@ func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 }
