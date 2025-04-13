@@ -11,11 +11,11 @@ import (
 )
 
 type Handler struct {
-	Repo Storage
+	Service Service
 }
 
-func RegisterRoutes(r chi.Router, repo Storage) {
-	h := &Handler{Repo: repo}
+func RegisterRoutes(r chi.Router, service Service) {
+	h := &Handler{Service: service}
 
 	r.Route("/watchlist", func(r chi.Router) {
 		r.Get("/", h.GetAllHandler)
@@ -33,7 +33,7 @@ func RegisterRoutes(r chi.Router, repo Storage) {
 // @Success      200  {array}  Ticker
 // @Router       /api/v1/watchlist [get]
 func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
-	tickers, err := h.Repo.GetAll()
+	tickers, err := h.Service.FindAll()
 	if err != nil {
 		http.Error(w, "Failed to retrieve tickers", http.StatusInternalServerError)
 		return
@@ -63,7 +63,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.Create(&t); err != nil {
+	if err := h.Service.CreateTicker(&t); err != nil {
 		http.Error(w, "Failed to create ticker", http.StatusInternalServerError)
 		return
 	}
@@ -102,7 +102,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.Update(uint(id), t); err != nil {
+	if err := h.Service.UpdateTicker(uint(id), t); err != nil {
 		http.Error(w, "Failed to update ticker", http.StatusInternalServerError)
 		return
 	}
@@ -131,7 +131,7 @@ func (h *Handler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.Delete(uint(id)); err != nil {
+	if err := h.Service.DeleteTicker(uint(id)); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "Record not found", http.StatusNotFound)
 			return

@@ -32,6 +32,7 @@ func (app *application) run() error {
 	}
 
 	watchlistRepo := watchlist.NewRepository(conn)
+	watchlistService := watchlist.NewService(watchlistRepo)
 
 	// 4. Setup Router config
 	r := chi.NewRouter()
@@ -45,7 +46,7 @@ func (app *application) run() error {
 	// 5. Register all API routes
 	r.Route(app.config.BASE_PATH, func(r chi.Router) {
 		health.RegisterRoutes(r)
-		watchlist.RegisterRoutes(r, watchlistRepo)
+		watchlist.RegisterRoutes(r, watchlistService)
 	})
 
 	// 6. Serve Swagger (if generated)
