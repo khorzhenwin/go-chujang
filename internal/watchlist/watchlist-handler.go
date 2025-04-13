@@ -14,8 +14,8 @@ type Handler struct {
 	Service Service
 }
 
-func RegisterRoutes(r chi.Router, service Service) {
-	h := &Handler{Service: service}
+func RegisterRoutes(r chi.Router, service *Service) {
+	h := &Handler{Service: *service}
 
 	r.Route("/watchlist", func(r chi.Router) {
 		r.Get("/", h.GetAllHandler)
