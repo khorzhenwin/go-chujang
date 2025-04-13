@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type DBConfig struct {
@@ -18,8 +16,6 @@ type DBConfig struct {
 }
 
 func LoadDBConfig() (*DBConfig, error) {
-	_ = godotenv.Load() // Loads from .env file
-
 	cfg := &DBConfig{
 		Host:     os.Getenv("DB_HOST"),
 		Port:     os.Getenv("DB_PORT"),

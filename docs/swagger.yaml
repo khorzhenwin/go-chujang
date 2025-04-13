@@ -1,13 +1,25 @@
 definitions:
+  ticker_price.TickerPrice:
+    properties:
+      price:
+        type: string
+      symbol:
+        type: string
+      timestamp:
+        type: string
+    type: object
   watchlist.Ticker:
     properties:
-      id:
-        description: UUID or string
+      created_at:
         type: string
+      id:
+        type: integer
       notes:
         type: string
       symbol:
         description: e.g., AAPL
+        type: string
+      updated_at:
         type: string
     type: object
 info:
@@ -24,6 +36,29 @@ paths:
       summary: Get health status
       tags:
       - health
+  /api/v1/ticker-price/{ticker}:
+    get:
+      description: Returns the current price of a ticker
+      parameters:
+      - description: Ticker Symbol
+        in: path
+        name: ticker
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ticker_price.TickerPrice'
+        "400":
+          description: Invalid ticker symbol
+          schema:
+            type: string
+      summary: Get price of a ticker
+      tags:
+      - ticker-price
   /api/v1/watchlist:
     get:
       description: Returns the current watchlist

@@ -4,6 +4,7 @@ run:
 
 # Build the app Docker image
 build:
+	swagger
 	docker build -t gochujang -f Dockerfile .
 
 # Run the app in Docker (connects to cloud DB via env vars)
@@ -23,6 +24,7 @@ reset:
 migrate:
 	go run cmd/api/main.go
 
-# Print effective DB_DSN (for debugging)
-print-dsn:
-	@echo "📦 DB_DSN is: $(DB_DSN)"
+# Generate Swagger docs
+swagger:
+	@echo "📝 Generating Swagger docs..."
+	swag init -g cmd/api/api.go --output docs

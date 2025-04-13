@@ -2,10 +2,12 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 	_ "github.com/khorzhenwin/go-chujang/docs" // <-- this is required for Swagger to embed docs
-	dbconfig "github.com/khorzhenwin/go-chujang/internal/config"
+	applicationConfig "github.com/khorzhenwin/go-chujang/internal/config"
 	"github.com/khorzhenwin/go-chujang/internal/db"
 	"github.com/khorzhenwin/go-chujang/internal/health"
+	"github.com/khorzhenwin/go-chujang/internal/ticker-price"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	_ "github.com/swaggo/files"
 	"github.com/swaggo/http-swagger"
@@ -14,14 +16,21 @@ import (
 )
 
 func (app *application) run() error {
-	// 1. Load DB Config
-	cfg, err := dbconfig.LoadDBConfig()
-	if err != nil {
-		log.Fatal(err)
+	// 1. Load Configs
+	_ = godotenv.Load() // Loads from .env file
+
+	dbCfg, dbErr := applicationConfig.LoadDBConfig()
+	if dbErr != nil {
+		log.Fatal(dbErr)
+	}
+
+	vantageCfg, vErr := applicationConfig.LoadVantageConfig()
+	if vErr != nil {
+		log.Fatal(vErr)
 	}
 
 	// 2. Initialize DB
-	conn, err := db.New(cfg)
+	conn, err := db.New(dbCfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,6 +42,7 @@ func (app *application) run() error {
 
 	watchlistRepo := watchlist.NewRepository(conn)
 	watchlistService := watchlist.NewService(watchlistRepo)
+	tickerPriceService := ticker_price.NewService(watchlistService, vantageCfg)
 
 	// 4. Setup Router config
 	r := chi.NewRouter()
@@ -47,6 +57,7 @@ func (app *application) run() error {
 	r.Route(app.config.BASE_PATH, func(r chi.Router) {
 		health.RegisterRoutes(r)
 		watchlist.RegisterRoutes(r, watchlistService)
+		ticker_price.RegisterRoutes(r, tickerPriceService)
 	})
 
 	// 6. Serve Swagger (if generated)

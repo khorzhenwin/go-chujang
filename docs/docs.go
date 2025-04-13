@@ -32,6 +32,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/ticker-price/{ticker}": {
+            "get": {
+                "description": "Returns the current price of a ticker",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ticker-price"
+                ],
+                "summary": "Get price of a ticker",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticker Symbol",
+                        "name": "ticker",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ticker_price.TickerPrice"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ticker symbol",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/watchlist": {
             "get": {
                 "description": "Returns the current watchlist",
@@ -169,18 +204,37 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "ticker_price.TickerPrice": {
+            "type": "object",
+            "properties": {
+                "price": {
+                    "type": "string"
+                },
+                "symbol": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
         "watchlist.Ticker": {
             "type": "object",
             "properties": {
-                "id": {
-                    "description": "UUID or string",
+                "created_at": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "notes": {
                     "type": "string"
                 },
                 "symbol": {
                     "description": "e.g., AAPL",
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
