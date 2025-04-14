@@ -7,6 +7,7 @@ import (
 	applicationConfig "github.com/khorzhenwin/go-chujang/internal/config"
 	"github.com/khorzhenwin/go-chujang/internal/db"
 	"github.com/khorzhenwin/go-chujang/internal/health"
+	"github.com/khorzhenwin/go-chujang/internal/kafka"
 	"github.com/khorzhenwin/go-chujang/internal/ticker-price"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	_ "github.com/swaggo/files"
@@ -29,7 +30,12 @@ func (app *application) run() error {
 		log.Fatal(vErr)
 	}
 
-	// 2. Initialize DB
+	kafkaCfg, kErr := applicationConfig.LoadKafkaConfig()
+	if kErr != nil {
+		log.Fatal(kErr)
+	}
+
+	// 2. Initialize DB & Kafka
 	conn, err := db.New(dbCfg)
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +48,12 @@ func (app *application) run() error {
 
 	watchlistRepo := watchlist.NewRepository(conn)
 	watchlistService := watchlist.NewService(watchlistRepo)
-	tickerPriceService := ticker_price.NewService(watchlistService, vantageCfg)
+	tickerPriceService := ticker_price.NewService(watchlistService, vantageCfg, kafkaCfg)
+
+	// 3.1 Initialize Kafka Producer & Start Producer
+	kafka.InitKafkaProducer(kafkaCfg)
+	defer kafka.CloseKafkaProducer()
+	go ticker_price.PollAndPushToKafka(tickerPriceService, watchlistService, kafkaCfg)
 
 	// 4. Setup Router config
 	r := chi.NewRouter()

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/khorzhenwin/go-chujang/internal/config"
+	"github.com/khorzhenwin/go-chujang/internal/kafka"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	"io"
 	"log"
@@ -14,15 +15,16 @@ import (
 
 type Service struct {
 	watchlistService watchlist.Service
-	config           config.VantageConfig
+	vantageConfig    config.VantageConfig
+	kafkaConfig      config.KafkaConfig
 }
 
-func NewService(watchlistService *watchlist.Service, config *config.VantageConfig) *Service {
-	return &Service{watchlistService: *watchlistService, config: *config}
+func NewService(watchlistService *watchlist.Service, vantageConfig *config.VantageConfig, kafkaConfig *config.KafkaConfig) *Service {
+	return &Service{watchlistService: *watchlistService, vantageConfig: *vantageConfig, kafkaConfig: *kafkaConfig}
 }
 
 func (s *Service) FindBySymbol(symbol string) *TickerPrice {
-	vantageApiUrl := s.config.GetGlobalQuoteUrl(symbol)
+	vantageApiUrl := s.vantageConfig.GetGlobalQuoteUrl(symbol)
 	tickerPrice, _ := fetchPrice(vantageApiUrl, symbol)
 	return tickerPrice
 }
@@ -48,10 +50,11 @@ func fetchPrice(externalApiUrl string, symbol string) (*TickerPrice, error) {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	body, err := io.ReadAll(resp.Body)
-	log.Printf("📦 Raw response for %s: %s\n", symbol, string(body))
 
 	if err != nil {
 		log.Println(err)
@@ -77,7 +80,7 @@ func fetchPrice(externalApiUrl string, symbol string) (*TickerPrice, error) {
 func pollPrices(tickerService *Service, symbols []string, results chan<- TickerPrice) {
 	for _, symbol := range symbols {
 		go func(s string) {
-			vantageApiUrl := tickerService.config.GetGlobalQuoteUrl(symbol)
+			vantageApiUrl := tickerService.vantageConfig.GetGlobalQuoteUrl(symbol)
 			resp, err := fetchPrice(vantageApiUrl, s)
 			if err != nil {
 				log.Printf("❌ Error fetching %s: %v", s, err)
@@ -88,7 +91,7 @@ func pollPrices(tickerService *Service, symbols []string, results chan<- TickerP
 	}
 }
 
-func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Service) {
+func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Service, kafkaConfig *config.KafkaConfig) {
 	// poll every 5 minutes
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -107,7 +110,8 @@ func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Serv
 			bytes, _ := json.Marshal(res)
 			log.Printf("✅ Price: %s", bytes)
 
-			// TODO: Push to Kafka here
+			kafka.PushToKafkaTopic(kafkaConfig.TickerPriceTopic, res, res.Symbol)
+
 		case <-ticker.C:
 			if IsTradingHours(time.Now()) || os.Getenv("FORCE_POLL") == "true" {
 				log.Println("🔄 Polling watchlist...")

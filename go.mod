@@ -5,12 +5,14 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
+	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/joho/godotenv v1.5.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4
+	github.com/twmb/franz-go v1.9.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
@@ -30,9 +32,14 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
-	github.com/rickar/cal/v2 v2.1.23 // indirect
+	github.com/moby/sys/userns v0.1.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/twmb/franz-go/pkg/kadm v1.3.1 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
+	github.com/twmb/tlscfg v1.2.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
