@@ -8,13 +8,15 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
 	"log"
-	"os"
 	"sync"
 	"time"
 )
 
-var client *kgo.Client
-var clientError error
+var (
+	client      *kgo.Client
+	clientError error
+	ready       = make(chan struct{}) // 🔒 block until initialized
+)
 
 func InitKafkaProducer(kafkaConfig *config.KafkaConfig) {
 	broker := kafkaConfig.Broker
@@ -28,7 +30,7 @@ func InitKafkaProducer(kafkaConfig *config.KafkaConfig) {
 			User: username,
 			Pass: password,
 		}.AsSha256Mechanism()),
-		kgo.WithLogger(kgo.BasicLogger(os.Stdout, kgo.LogLevelDebug, nil)),
+		//kgo.WithLogger(kgo.BasicLogger(os.Stdout, kgo.LogLevelDebug, nil)),
 	)
 
 	if clientError != nil {
@@ -36,6 +38,7 @@ func InitKafkaProducer(kafkaConfig *config.KafkaConfig) {
 	}
 
 	log.Println("🚀 Franz Kafka producer initialized")
+	close(ready)
 }
 
 func CloseKafkaProducer() {
@@ -46,7 +49,12 @@ func CloseKafkaProducer() {
 }
 
 func PushToKafkaTopic[T any](topic string, data T, key string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	<-ready // ⏳ block until Kafka is ready
+	if client == nil {
+		log.Fatal("💥 Kafka client is nil after supposed init")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	value, err := json.Marshal(data)

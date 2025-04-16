@@ -111,7 +111,7 @@ func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Serv
 			bytes, _ := json.Marshal(res)
 			log.Printf("✅ Price: %s", bytes)
 
-			kafka.PushToKafkaTopic(kafkaConfig.TickerPriceTopic, res, res.Symbol)
+			go kafka.PushToKafkaTopic(kafkaConfig.TickerPriceTopic, res, res.Symbol)
 
 		case <-ticker.C:
 			if IsTradingHours(time.Now()) || os.Getenv("FORCE_POLL") == "true" {
