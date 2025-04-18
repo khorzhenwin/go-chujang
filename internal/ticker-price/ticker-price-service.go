@@ -94,7 +94,7 @@ func pollPrices(tickerService *Service, symbols []string, results chan<- TickerP
 
 func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Service, kafkaConfig *config.KafkaConfig) {
 	// poll every 5 minutes
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
 	results := make(chan TickerPrice)
