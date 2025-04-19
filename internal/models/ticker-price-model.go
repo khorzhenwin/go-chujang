@@ -1,4 +1,4 @@
-package ticker_price
+package models
 
 type TickerPrice struct {
 	Symbol    string `json:"symbol"`

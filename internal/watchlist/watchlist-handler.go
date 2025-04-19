@@ -3,6 +3,7 @@ package watchlist
 import (
 	"encoding/json"
 	"errors"
+	"github.com/khorzhenwin/go-chujang/internal/models"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
@@ -57,7 +58,7 @@ func (h *Handler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var t Ticker
+	var t models.Ticker
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
@@ -96,7 +97,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var t Ticker
+	var t models.Ticker
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return

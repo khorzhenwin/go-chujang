@@ -8,6 +8,7 @@ import (
 	"github.com/khorzhenwin/go-chujang/internal/db"
 	"github.com/khorzhenwin/go-chujang/internal/health"
 	"github.com/khorzhenwin/go-chujang/internal/kafka"
+	"github.com/khorzhenwin/go-chujang/internal/models"
 	"github.com/khorzhenwin/go-chujang/internal/ticker-price"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	_ "github.com/swaggo/files"
@@ -42,7 +43,7 @@ func (app *application) run() error {
 	}
 
 	// 3. Run Migrations & initialize Repository
-	if err := conn.AutoMigrate(&watchlist.Ticker{}); err != nil {
+	if err := conn.AutoMigrate(&models.Ticker{}); err != nil {
 		log.Fatalf("❌ AutoMigrate failed: %v", err)
 	}
 
