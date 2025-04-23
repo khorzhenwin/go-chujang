@@ -64,14 +64,36 @@ func fetchPrice(externalApiUrl string, symbol string) (*models.TickerPrice, erro
 		return nil, fmt.Errorf("❌ failed to read response: %w", err)
 	}
 
-	var result map[string]map[string]string
-	if err := json.Unmarshal(body, &result); err != nil {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		log.Printf("❌ Failed to unmarshal response: %v", err)
+		log.Printf("🔎 Raw response: %s", string(body))
 		return nil, fmt.Errorf("❌ failed to decode JSON: %w", err)
 	}
 
-	data := result["Global Quote"]
-	price := data["05. price"]
-	timestamp := data["07. latest trading day"]
+	// Handle known error formats from Alpha Vantage
+	if note, ok := raw["Note"]; ok {
+		log.Printf("⚠️ Alpha Vantage Note: %v", note)
+		return nil, fmt.Errorf("rate limited or API error: %v", note)
+	}
+	if errMsg, ok := raw["Error Message"]; ok {
+		log.Printf("⚠️ Alpha Vantage Error: %v", errMsg)
+		return nil, fmt.Errorf("api error: %v", errMsg)
+	}
+
+	// Convert the nested quote safely
+	globalQuote, ok := raw["Global Quote"].(map[string]interface{})
+	if !ok || len(globalQuote) == 0 {
+		log.Printf("⚠️ Missing or invalid Global Quote: %v", raw)
+		return nil, fmt.Errorf("missing or invalid Global Quote")
+	}
+
+	price, _ := globalQuote["05. price"].(string)
+	timestamp, _ := globalQuote["07. latest trading day"].(string)
+
+	if price == "" || timestamp == "" {
+		return nil, fmt.Errorf("empty price or timestamp, skipping symbol %s", symbol)
+	}
 
 	return &models.TickerPrice{
 		Symbol:    symbol,
@@ -97,7 +119,7 @@ func pollPrices(tickerService *Service, symbols []string, results chan<- models.
 
 func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Service, kafkaConfig *config.KafkaConfig) {
 	// poll every 5 minutes
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	results := make(chan models.TickerPrice)
@@ -156,6 +178,7 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 
 				mu.Lock()
 				priceWindows[msg.Symbol] = append(priceWindows[msg.Symbol], entry)
+
 				if len(priceWindows[msg.Symbol]) > 10 {
 					priceWindows[msg.Symbol] = priceWindows[msg.Symbol][len(priceWindows[msg.Symbol])-10:]
 				}

@@ -56,6 +56,11 @@ func (app *application) run() error {
 	defer kafka.CloseKafkaProducer()
 	go ticker_price.PollAndPushToKafka(tickerPriceService, watchlistService, kafkaCfg)
 
+	// 3.2 Initialize Kafka Consumer & Start Consumer
+	tickerChan := make(chan models.TickerPrice, 100)
+	go kafka.StartKafkaConsumer(kafkaCfg, "gochujang-signals-group", tickerChan)
+	go ticker_price.StartSignalWorker(tickerChan)
+
 	// 4. Setup Router config
 	r := chi.NewRouter()
 	server := &http.Server{
