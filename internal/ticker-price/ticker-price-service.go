@@ -6,6 +6,7 @@ import (
 	"github.com/khorzhenwin/go-chujang/internal/config"
 	"github.com/khorzhenwin/go-chujang/internal/kafka"
 	"github.com/khorzhenwin/go-chujang/internal/models"
+	"github.com/khorzhenwin/go-chujang/internal/notification"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	"io"
 	"log"
@@ -148,7 +149,7 @@ func PollAndPushToKafka(tickerService *Service, watchlistService *watchlist.Serv
 }
 
 // StartSignalWorker Refer to ADR-001
-func StartSignalWorker(input <-chan models.TickerPrice) {
+func StartSignalWorker(input <-chan models.TickerPrice, notificationService *notification.Service) {
 	type PriceEntry struct {
 		Timestamp time.Time
 		Price     float64

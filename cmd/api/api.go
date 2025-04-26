@@ -9,6 +9,7 @@ import (
 	"github.com/khorzhenwin/go-chujang/internal/health"
 	"github.com/khorzhenwin/go-chujang/internal/kafka"
 	"github.com/khorzhenwin/go-chujang/internal/models"
+	"github.com/khorzhenwin/go-chujang/internal/notification"
 	"github.com/khorzhenwin/go-chujang/internal/ticker-price"
 	"github.com/khorzhenwin/go-chujang/internal/watchlist"
 	_ "github.com/swaggo/files"
@@ -36,6 +37,11 @@ func (app *application) run() error {
 		log.Fatal(kErr)
 	}
 
+	notifierCfg, nErr := applicationConfig.LoadNotifierConfig()
+	if nErr != nil {
+		log.Fatal(nErr)
+	}
+
 	// 2. Initialize DB & Kafka
 	conn, err := db.New(dbCfg)
 	if err != nil {
@@ -49,6 +55,7 @@ func (app *application) run() error {
 
 	watchlistRepo := watchlist.NewRepository(conn)
 	watchlistService := watchlist.NewService(watchlistRepo)
+	notificationService := notification.NewService(notifierCfg)
 	tickerPriceService := ticker_price.NewService(watchlistService, vantageCfg, kafkaCfg)
 
 	// 3.1 Initialize Kafka Producer & Start Producer
@@ -59,7 +66,7 @@ func (app *application) run() error {
 	// 3.2 Initialize Kafka Consumer & Start Consumer
 	tickerChan := make(chan models.TickerPrice, 100)
 	go kafka.StartKafkaConsumer(kafkaCfg, "gochujang-signals-group", tickerChan)
-	go ticker_price.StartSignalWorker(tickerChan)
+	go ticker_price.StartSignalWorker(tickerChan, notificationService)
 
 	// 4. Setup Router config
 	r := chi.NewRouter()
