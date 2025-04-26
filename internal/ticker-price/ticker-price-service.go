@@ -155,7 +155,7 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 	}
 
 	priceWindows := make(map[string][]PriceEntry)
-	lastSignal := make(map[string]time.Time) // cooldown tracking
+	lastSignal := make(map[string]time.Time)
 	var mu sync.Mutex
 
 	go func() {
@@ -194,28 +194,41 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 					if len(window) < 5 {
 						continue
 					}
+
 					oldest := window[0]
 					latest := window[len(window)-1]
 
-					// Calculate % total increase
-					totalIncrease := (latest.Price - oldest.Price) / oldest.Price
+					// % total movement
+					totalChange := (latest.Price - oldest.Price) / oldest.Price
 
-					// Count how many points are increasing
+					// Count rises and falls
 					increaseCount := 0
+					decreaseCount := 0
 					for i := 1; i < len(window); i++ {
 						if window[i].Price > window[i-1].Price {
 							increaseCount++
+						} else if window[i].Price < window[i-1].Price {
+							decreaseCount++
 						}
 					}
 
-					// Check cooldown (1 hour)
+					// Cooldown: skip if recently signaled
 					if last, ok := lastSignal[symbol]; ok && now.Sub(last) < time.Hour {
 						continue
 					}
 
-					if totalIncrease >= 0.01 && increaseCount >= 4 {
-						log.Printf("🚀 BUY SIGNAL for %s - Strong uptrend (%.2f%% increase over last 5 ticks)", symbol, totalIncrease*100)
+					// 🚀 Uptrend Buy Signal
+					if totalChange >= 0.02 && increaseCount >= 4 {
+						log.Printf("🚀 BUY SIGNAL for %s - Strong uptrend (%.2f%% increase)", symbol, totalChange*100)
 						lastSignal[symbol] = now
+						continue
+					}
+
+					// 🔻 Downtrend Buy-the-Dip Signal
+					if totalChange <= -0.02 && decreaseCount >= 4 {
+						log.Printf("🔻 BOGDANOFF HAS DOUMP IT. BUY THE DIP for %s - Strong downtrend (%.2f%% decrease)", symbol, totalChange*100)
+						lastSignal[symbol] = now
+						continue
 					}
 				}
 				mu.Unlock()
