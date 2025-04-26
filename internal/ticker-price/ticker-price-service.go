@@ -155,6 +155,7 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 	}
 
 	priceWindows := make(map[string][]PriceEntry)
+	lastSignal := make(map[string]time.Time) // cooldown tracking
 	var mu sync.Mutex
 
 	go func() {
@@ -179,6 +180,7 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 				mu.Lock()
 				priceWindows[msg.Symbol] = append(priceWindows[msg.Symbol], entry)
 
+				// Keep only the latest 10 observations
 				if len(priceWindows[msg.Symbol]) > 10 {
 					priceWindows[msg.Symbol] = priceWindows[msg.Symbol][len(priceWindows[msg.Symbol])-10:]
 				}
@@ -186,16 +188,34 @@ func StartSignalWorker(input <-chan models.TickerPrice) {
 
 			case <-ticker.C:
 				mu.Lock()
+				now := time.Now()
+
 				for symbol, window := range priceWindows {
-					if len(window) < 3 {
+					if len(window) < 5 {
 						continue
 					}
-					latest := window[len(window)-1]
-					prev := window[len(window)-2]
 					oldest := window[0]
+					latest := window[len(window)-1]
 
-					if latest.Price > prev.Price && prev.Price > oldest.Price {
-						log.Printf("🚀 BUY SIGNAL for %s - price increasing trend detected", symbol)
+					// Calculate % total increase
+					totalIncrease := (latest.Price - oldest.Price) / oldest.Price
+
+					// Count how many points are increasing
+					increaseCount := 0
+					for i := 1; i < len(window); i++ {
+						if window[i].Price > window[i-1].Price {
+							increaseCount++
+						}
+					}
+
+					// Check cooldown (1 hour)
+					if last, ok := lastSignal[symbol]; ok && now.Sub(last) < time.Hour {
+						continue
+					}
+
+					if totalIncrease >= 0.01 && increaseCount >= 4 {
+						log.Printf("🚀 BUY SIGNAL for %s - Strong uptrend (%.2f%% increase over last 5 ticks)", symbol, totalIncrease*100)
+						lastSignal[symbol] = now
 					}
 				}
 				mu.Unlock()
