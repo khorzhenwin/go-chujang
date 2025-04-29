@@ -22,4 +22,4 @@ coverage.out
 .idea/
 
 # Environment files
-.env
+.env*
