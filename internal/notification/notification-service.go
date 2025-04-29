@@ -16,17 +16,18 @@ func NewService(notificationConfig *models.TelegramNotifier) *Service {
 	return &Service{notificationConfig: *notificationConfig}
 }
 
-func Send(message string, t *models.TelegramNotifier) error {
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", t.BotToken)
+func (s Service) Send(message string) error {
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", s.notificationConfig.BotToken)
 
 	payload := map[string]string{
-		"chat_id": t.ChatID,
+		"chat_id": s.notificationConfig.ChatID,
 		"text":    message,
 	}
 	body, _ := json.Marshal(payload)
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
+		fmt.Printf("error: %v", err)
 		return fmt.Errorf("failed to send telegram message: %w", err)
 	}
 	defer resp.Body.Close()

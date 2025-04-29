@@ -220,14 +220,27 @@ func StartSignalWorker(input <-chan models.TickerPrice, notificationService *not
 
 					// 🚀 Uptrend Buy Signal
 					if totalChange >= 0.02 && increaseCount >= 4 {
-						log.Printf("🚀 BUY SIGNAL for %s - Strong uptrend (%.2f%% increase)", symbol, totalChange*100)
+						message := fmt.Sprintf("🚀 BUY SIGNAL for %s - Strong uptrend (%.2f%% increase)", symbol, totalChange*100)
+						log.Printf(message)
+						err := notificationService.Send(message)
+
+						if err != nil {
+							return
+						}
 						lastSignal[symbol] = now
 						continue
 					}
 
 					// 🔻 Downtrend Buy-the-Dip Signal
 					if totalChange <= -0.02 && decreaseCount >= 4 {
-						log.Printf("🔻 BOGDANOFF HAS DOUMP IT. BUY THE DIP for %s - Strong downtrend (%.2f%% decrease)", symbol, totalChange*100)
+						message := fmt.Sprintf("🔻 BOGDANOFF HAS DOUMP IT. BUY THE DIP for %s - Strong downtrend (%.2f%% decrease)", symbol, totalChange*100)
+						log.Printf(message)
+						err := notificationService.Send(message)
+
+						if err != nil {
+							return
+						}
+
 						lastSignal[symbol] = now
 						continue
 					}

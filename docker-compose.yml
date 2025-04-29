@@ -32,6 +32,8 @@ services:
       - KAFKA_BROKER=${KAFKA_BROKER}
       - KAFKA_CLIENT_ID=${KAFKA_CLIENT_ID}
       - KAFKA_CLIENT_SECRET=${KAFKA_CLIENT_SECRET}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     command: [ "./gochujang" ]
     ports:
       - "8080:8080"
