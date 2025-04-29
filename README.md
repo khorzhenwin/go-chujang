@@ -1,31 +1,160 @@
 # 📝 Project Summary: Penny Stock Buy Signal App
 
-## Description
-A personal Go project designed to help identify buy signals for penny stocks in my Moomoo watchlist. This application fetches real-time and historical market data, analyzes each stock based on technical indicators (like moving averages and RSI), and alerts me when potential buy conditions are met.
+A fully containerized **real-time stock signal** system built in Go, using Kafka for decoupled event streaming, Alpha Vantage for live market data, PostgreSQL (AWS RDS) for watchlist storage, and Telegram for push notifications.
 
-### Goals
-- Learn and practice Go in a real-world, finance-related context.
-- Build a modular and extendable backend application.
-- Gain insights into stock analysis and automate signal detection.
-- Explore integrations with third-party APIs and schedulers.
+### 📡 Designed for production, tested in production. 📡
+Gochujang-powered trading signals.  
+**Simple. Fast. Real-time.**
 
-### Core Features
-- ⚙️ Watchlist Integration: Load penny stock tickers from a file (Moomoo export or manual).
-- 📈 Market Data Fetching: Use free APIs (e.g., Alpha Vantage, Finnhub) to gather OHLCV data.
-- 🔍 Signal Engine: Apply technical analysis strategies like moving average crossovers or RSI thresholds to detect buy signals.
-- 📣 Notification System: Notify via CLI, email, or chat (Telegram/Slack) when a buy signal is triggered.
-- 🕒 Scheduled Execution: Periodically run the analysis using a scheduler or cron job.
-- 📊 (Optional) Historical signal storage for tracking performance.
+---
 
-### ☁️ Cloud Deployment Options
+## 📦 Architecture Overview
 
-| Platform         | Pros                                                | Cons                                |
-|------------------|-----------------------------------------------------|-------------------------------------|
-| **AWS Lambda**   | - Pay per use, no server management                <br>- Easy to schedule with CloudWatch Events | - Cold start latency <br>- Limited execution time and memory |
-| **AWS ECS Fargate** | - Run Docker containers without managing servers <br>- Supports cron-like scheduled tasks | - More configuration/setup required |
-| **Render**       | - Simple UI <br>- Supports cron jobs out of the box <br>- Free tier available | - Limited customization options     |
-| **Fly.io**       | - Easy Docker deployment with global edge runtime <br>- Free tier for small apps | - Still maturing, smaller ecosystem |
-| **GitHub Actions** | - Easy to set up <br>- Free for public repos <br>- Cron job support with workflows | - Not suitable for long-running tasks |
-| **Railway**      | - Simple full-stack deployment <br>- Environment variable management | - Slightly more opinionated workflow |
+| Component              | Description                                  |
+|-------------------------|----------------------------------------------|
+| **Storage**             | In-memory sliding windows (for prices), PostgreSQL (AWS RDS) for ticker watchlist |
+| **Market Data Fetcher** | Polls Alpha Vantage GLOBAL_QUOTE API every 5 minutes |
+| **Kafka Cluster**       | Redpanda single-node cluster (self-hosted)   |
+| **Signal Worker**       | Evaluates buy signals every 15 minutes       |
+| **Notification Service**| Pushes signals to Telegram chat             |
+| **Dockerized**          | Fully containerized using Docker + Compose  |
+
+---
+
+## ⚙️ Services
+
+- **Ticker Price Fetcher**
+    - Fetches latest ticker prices from Alpha Vantage.
+    - Pushes results to Kafka topic `ticker-prices`.
+
+- **Kafka Broker (Redpanda)**
+    - Self-hosted Redpanda cluster exposed on port `9092`.
+
+- **AWS RDS PostgreSQL**
+    - Stores the list of tickers to watch.
+    - Integrated with GORM ORM inside the Go application.
+
+- **Signal Worker**
+    - Maintains a sliding window of prices per symbol.
+    - Detects:
+        - 🚀 Uptrend (>1% increase, 4/5 points rising)
+        - 🔻 Downtrend (Buy the Dip, >1% decrease, 4/5 points falling)
+    - Sends Telegram notifications for confirmed signals.
+
+- **Telegram Notifier**
+    - Sends alerts instantly to your phone via bot messages.
+
+---
+
+## 📄 Environment Variables
+
+```env
+# RDS
+DB_HOST=
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=
+DB_NAME=
+DB_SSL=
+
+# Poller setting
+FORCE_POLL=true
+
+# Alpha Vantage API
+ALPHA_VANTAGE_API_KEY=
+ALPHA_VANTAGE_BASE_URL=https://www.alphavantage.co
+
+# Kafka
+KAFKA_USERNAME=gochujang-app
+KAFKA_PASSWORD=
+KAFKA_TICKER_PRICE_TOPIC=ticker-prices
+KAFKA_BROKER=
+KAFKA_CLIENT_ID=
+KAFKA_CLIENT_SECRET=
+
+# Telegram
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+```
+
+---
+
+## 🐳 Dockerized Deployment
+
+**docker-compose.yml**
+
+```yaml
+version: '3.9'
+
+services:
+  swagger:
+    image: golang:1.21
+    working_dir: /app
+    volumes:
+      - .:/app
+    entrypoint: [ "sh", "-c" ]
+    command: |
+      go install github.com/swaggo/swag/cmd/swag@latest && \
+      swag init -g cmd/api/api.go --output docs
+
+  app:
+    working_dir: /app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSL=${DB_SSL}
+      - FORCE_POLL=${FORCE_POLL}
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - ALPHA_VANTAGE_BASE_URL=${ALPHA_VANTAGE_BASE_URL}
+      - KAFKA_USERNAME=${KAFKA_USERNAME}
+      - KAFKA_PASSWORD=${KAFKA_PASSWORD}
+      - KAFKA_TICKER_PRICE_TOPIC=${KAFKA_TICKER_PRICE_TOPIC}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - KAFKA_CLIENT_ID=${KAFKA_CLIENT_ID}
+      - KAFKA_CLIENT_SECRET=${KAFKA_CLIENT_SECRET}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    ports:
+      - "8080:8080"
+    command: [ "./gochujang" ]
+
+```
+
+### 🚀 To Start:
+
+```bash
+make up
+```
+
+---
+
+## 📈 Features
+
+- 5-minute price polling
+- 15-minute signal evaluation
+- 1-hour cooldown per symbol
+- Uptrend and Downtrend detection
+- Telegram notifications
+- Watchlist stored in AWS RDS PostgreSQL
+- Dockerized for easy deployment
+
+---
+
+## 🎯 Future Enhancements
+
+- 📚 Historical price persistence (Redis/TSDB)
+- 📈 Dashboard visualization of signals
+- 🧠 Smarter quant rules (moving averages, RSI)
+- 📤 Webhook integrations for broader alerting
+
+---
 
 ![image](https://github.com/user-attachments/assets/95fe8883-ce9f-4893-9f5f-ad52f4f9f8a1)
